@@ -11,7 +11,7 @@ object OsmTag {
 }
 
 class OsmNode(val id: Long, val lat: Double, val lon: Double, val tags: Seq[OsmTag]) {
-  override def toString = "node:" + id + ", coords:(" + lon + ", " + lat + "), tags:(" + tags.mkString(",") + ")"
+  override def toString = "node:" + id + ", coords:(" + lon + ", " + lat + "), tags:(" + tags.mkString(", ") + ")"
 }
 
 object OsmNode {
@@ -25,10 +25,10 @@ object OsmNode {
         (n \\ "tag").map(OsmTag(_)).filterNot(ignoreTag)
     )
   }
-}    
+}
 
 class OsmWay(val id: Long, val nodeIds: Seq[Long],  val tags: Seq[OsmTag]) {
-  override def toString = "Way:" + id + " (" + nodeIds.mkString(",") + ") " + tags.mkString(",")
+  override def toString = "way:" + id + ", nodes:(" + nodeIds.mkString(", ") + "), tags:(" + tags.mkString(", ") + ")"
 }
 
 object OsmWay {
@@ -37,13 +37,13 @@ object OsmWay {
     n.attribute("id").get.text.toLong,
     (n \\ "nd").map(nd  => nd.attribute("ref").get.text.toLong),
     (n \\ "tag").map(OsmTag(_)).filterNot(ignoreTag)
-  )     
+  )
 }
 
 class OsmRelationMember(val relType: String, val ref: Long, val role: String) {
-  override def toString = "[" + relType + " " + ref + " " + role + "]"
+  override def toString = "(" + relType + ", " + ref + ", " + role + ")"
 }
 
-class OsmRelation(val id: Long, members: Seq[OsmRelationMember], tags: Seq[OsmTag]) {
-  override def toString = "Relation:" + id + " (" +members.mkString(",") + "): " + tags.mkString(",")
+class OsmRelation(val id: Long, val members: Seq[OsmRelationMember], val tags: Seq[OsmTag]) {
+  override def toString = "relation:" + id + ", members:(" + members.mkString(", ") + "), tags:(" + tags.mkString(", ") + ")"
 }
