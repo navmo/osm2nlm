@@ -11,7 +11,7 @@ object OsmTag {
 }
 
 class OsmNode(val id: Long, val lat: Double, val lon: Double, val tags: Seq[OsmTag]) {
-  override def toString = "Node:" + id + " (" + lon + "," + lat + ") " + tags.mkString(",")
+  override def toString = "node:" + id + ", coords:(" + lon + ", " + lat + "), tags:(" + tags.mkString(",") + ")"
 }
 
 object OsmNode {
@@ -22,7 +22,7 @@ object OsmNode {
         attr("id").toLong, 
         attr("lat").toDouble, 
         attr("lon").toDouble, 
-        (n \\ "tag").map(t => OsmTag(t)).filterNot(ignoreTag)
+        (n \\ "tag").map(OsmTag(_)).filterNot(ignoreTag)
     )
   }
 }    
@@ -36,7 +36,7 @@ object OsmWay {
   def apply(n: xml.Node) = new OsmWay(
     n.attribute("id").get.text.toLong,
     (n \\ "nd").map(nd  => nd.attribute("ref").get.text.toLong),
-    (n \\ "tag").map(tag => OsmTag(tag)).filterNot(ignoreTag)
+    (n \\ "tag").map(OsmTag(_)).filterNot(ignoreTag)
   )     
 }
 

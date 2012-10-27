@@ -3,6 +3,7 @@ package org.navmo.osm2nlm
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
+import java.io.ByteArrayInputStream
 import java.util.zip.GZIPInputStream
 import scala.xml.XML
 
@@ -29,10 +30,11 @@ object Main {
 }
 
 class OsmParser() {
+  // def parse(osmText: String): OsmData = parse(new ByteArrayInputStream(osmText.getBytes("utf-8")))
+  def parse(osmStream: InputStream): OsmData = parse(XML.load(osmStream))
   
-  def parse(osmStream: InputStream): OsmData = {
-    val osmXml = XML.load(osmStream)
- 
+  def parse(osmXml: xml.NodeSeq): OsmData = {
+   
     // Metadata
     for (elem <- osmXml \\ "osm") {
       println("version=" + elem.attribute("version").getOrElse(""))
