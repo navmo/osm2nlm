@@ -2,8 +2,8 @@ package org.navmo.osm2nlm
 
 import java.io.File
 
-class NlmData(val nlmMetadata: NlmMetadata) {
-  
+class NlmData(val nlmJunctions: Seq[NlmJunction]) {
+
 }
 
 class NlmWriter() {
@@ -11,11 +11,15 @@ class NlmWriter() {
     val f = new File(dir)
     if (!f.exists()) f.mkdirs()
   }
-  
+
   def exportTo(nlmDir: String) {
     cleanDir(nlmDir)
   }
 }
 
 class NlmMetadata() {
+}
+
+class NlmJunction(val id: Long) {
+  override def toString = "junction:" + id
 }

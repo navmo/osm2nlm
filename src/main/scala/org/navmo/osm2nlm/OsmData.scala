@@ -1,43 +1,19 @@
 package org.navmo.osm2nlm
 
-class OsmData(val nodes: Seq[OsmNode], val ways: Seq[OsmWay], val relations: Seq[OsmRelation])
+class OsmData(val metadata: OsmMetadata, val nodes: Seq[OsmNode], val ways: Seq[OsmWay], val relations: Seq[OsmRelation])
+
+class OsmMetadata(val minLat: BigDecimal, val minLon: BigDecimal, val maxLat: BigDecimal, val maxLon: BigDecimal)
 
 class OsmTag(val key: String, val value: String) {
   override def toString = key + "=" + value
 }
 
-object OsmTag {
-  def apply(n: xml.Node) = new OsmTag(n.attribute("k").get.text, n.attribute("v").get.text)
-}
-
-class OsmNode(val id: Long, val lat: Double, val lon: Double, val tags: Seq[OsmTag]) {
+class OsmNode(val id: Long, val lat: BigDecimal, val lon: BigDecimal, val tags: Seq[OsmTag]) {
   override def toString = "node:" + id + ", coords:(" + lon + ", " + lat + "), tags:(" + tags.mkString(", ") + ")"
-}
-
-object OsmNode {
-  def apply(n: xml.Node) = {
-    val ignoreTag = (tag: OsmTag) => List("created_by").contains(tag.key)
-    val attr = n.attributes.asAttrMap
-    new OsmNode(
-        attr("id").toLong, 
-        attr("lat").toDouble, 
-        attr("lon").toDouble, 
-        (n \\ "tag").map(OsmTag(_)).filterNot(ignoreTag)
-    )
-  }
 }
 
 class OsmWay(val id: Long, val nodeIds: Seq[Long],  val tags: Seq[OsmTag]) {
   override def toString = "way:" + id + ", nodes:(" + nodeIds.mkString(", ") + "), tags:(" + tags.mkString(", ") + ")"
-}
-
-object OsmWay {
-  val ignoreTag = (tag: OsmTag) => List("created_by", "source").contains(tag.key) 
-  def apply(n: xml.Node) = new OsmWay(
-    n.attribute("id").get.text.toLong,
-    (n \\ "nd").map(nd  => nd.attribute("ref").get.text.toLong),
-    (n \\ "tag").map(OsmTag(_)).filterNot(ignoreTag)
-  )
 }
 
 class OsmRelationMember(val relType: String, val ref: Long, val role: String) {
