@@ -4,7 +4,28 @@ This is a tool to convert map data from OpenStreetMap xml format, to Navmo Local
 ## OpenStreetMap xml format
 Best described by example, this is an xml file that looks like this:
 
-*TODO*
+    <?xml version="1.0" encoding="UTF-8"?>
+    <osm version="0.6" generator="CGImap 0.0.2" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+      <bounds minlat="52.5275000" minlon="-0.2895000" maxlat="52.5492000" maxlon="-0.2483000"/>
+       <node id="4306212" lat="52.5478980" lon="-0.2508848" user="UniEagle" uid="61216" visible="true" version="4" changeset="11091681" timestamp="2012-03-25T06:57:18Z"/>
+       ...
+       <way id="4304530" user="Stéphane Péchard" uid="98682" visible="true" version="3" changeset="3649126" timestamp="2010-01-18T10:27:55Z">
+         <nd ref="25713008"/>
+         <nd ref="26031482"/>
+         <tag k="highway" v="unclassified"/>
+         <tag k="name" v="Phorpres Close"/>
+         <tag k="oneway" v="yes"/>
+      </way>
+      ...
+       <relation id="32019" user="sec147" uid="83127" visible="true" version="198" changeset="13572879" timestamp="2012-10-20T21:07:11Z">
+         <member type="way" ref="25693112" role=""/>
+         <member type="way" ref="148855984" role=""/>
+         <member type="way" ref="148855942" role=""/>
+       </relation>
+       ...
+     </osm>
+
+Basically, any interesting location is a Node; Ways are lists of Nodes, and Relations are collections of other items. All data is represented by using custom tags on one or more of these three types.
 
 ## Navmo Local Map format
 The purpose of this format is to store map data in such a way that it is possible to quickly draw the map (in a local coordinate system), and to run a routing algorithim.
@@ -15,6 +36,76 @@ There are three parts to the Navmo Local map format:
 2. The online search data files. These are a collection of bzip2-compressed text files (one per data table); an ant script on the Navmo server is used to import these into the PostgreSQL database. These are used for online searching of roads and POIs.
 3. The rendering/routing data files. These are a collection of gzip-compressed binary files (one per data table), each containing a header and an array of serialized Java objects. These are used for routing and generating offline maps, and are loaded into the various Java processors that perform these tasks.
 
+## Comparison of OSM and NLM data types.
+
+### Nodes, Ways, Sections, Segments, Junctions and Shapepoints. And Roads and Logical Roads.
+Roughly speaking:
+
+    OSM                                                          NLM
+    ----------------------------------------------------------   ----------
+    Node that joins two ways, or the start/end of a way          Junction
+     
+    Node that is not in an OSM way, but is not an NLM Junction   Shapepoint
+              
+    Node that has tags to indicate a point of interest (even     POI/Place
+    if it is also part of a way)
+    
+    Part of an OSM Way that is bounded NLM junctions             Section
+    
+    Part of an OSM Way that is not bounded by NLM junctions      Segment
+    
+    Collection of (possible non-contiguous) ways that have       Road
+    the same metadata (name, size, etc)
+
+In OSM data, anything with coordinates is a node. Ways are arbitrary lists of nodes, which can cross each other and themselves.
+
+In NLM, Sections go between Junctions. Sections are made up of segments, which are straight lines that go between a Junctions and Shapepoints.
+
+Shapepoints are merely a list of coordinates that are used to impart shape to a section.
+
+Roads 
+
+For example, in the following road network, OSM might have 5 Nodes and two Ways. NLM would have 5 Junctions, 4 Sections and 2 Roads
+<pre>
+    OSM                           NLM
+               o N1                              o J1            
+               |                                 |               
+               | W1                              | Sec1          
+               |                                 |               
+    N5         | N2      N4                      |J5             
+    o----------o---------o         J3 o----------o---------o  J2 
+               |    W2                  Sec3     |   Sec4        
+               |                                 |               
+               |                                 |               
+               |                                 | Sec2          
+               o N3                           J4 o               
+
+                                   With Road1 = (Sec1, Sec2), Road3 = (Sec3, Sec4)
+</pre>
+Note that Roads in NLM do not have their own IDs, they simply take the ID of the lowest numbered Section
+in the Road.
+
+In this example, we have a curved road and a cul-de-sac. In OSM this would be 3 ways; the curved section would
+be part of W2 and the 'end cap' of the cul-de-sac would need to be a separate way. In NLM, the curve would contain Shapepoints instead  of Junctions.
+
+In NLM
+<pre>
+    OSM                            NLM`
+               W3                               Sec5
+   N6,N2,N8  o-o-o                    J6,J1,J7 o-o-o                 
+               |         o N10                   |           o J8   
+               | W1      |                       | Sec1      |        
+               |         o N9                    |           x  SP4.1  
+    N5         | N2     /                        |J5        /
+    o----------o-------o N4        J3 o----------o---------x  SP4.2         
+               |    W2                  Sec3     |   Sec4
+               |                                 |              
+               |                                 |                 
+               |                                 | Sec2               
+               o N3                           J4 o              
+
+                                   With Road1 = (Sec1, Sec2, Sec5), Road2 = (Sec3, Sec4). Section4 has 2 Shapepoints.
+</pre>
 
 ### Navmo Local Map Metadata Properties File (metadata.properties)
 Standard java properties file. Contains the following keys (obviously the values can change)
@@ -46,6 +137,7 @@ This file contains the same keys (CountryCode, MapName, etc) as the metadata.pro
     value          text        not null
 
 #### Road Junction (roadjunction.txt.bz2)
+This is used to search for  
 
     Field          Data type   Nullable
     -------------- ----------- --------
@@ -55,8 +147,9 @@ This file contains the same keys (CountryCode, MapName, etc) as the metadata.pro
     postalarea     text        not null
     logicalroad1   int         null
     logicalroad2   int         null
-            
+
 #### Logical Road Junction (logicalroadjunction.txt.bz2)
+This is used to lookup all junctions that are part of a particular logical road. This is used when routing to or from a road; we actually search for a route to any of the junctions in the list.
 
     Field          Data type   Nullable
     -------------- ----------- --------
@@ -64,6 +157,8 @@ This file contains the same keys (CountryCode, MapName, etc) as the metadata.pro
     junctionid      int        not null
 
 #### Point Of Interest (poi.txt.bz2)
+This is used to enable searching for points-of-interest as route starting-points or destinations. The latitude and longitude are required for the ability to search  for POIs near to a particular location.
+The size is used so that 'larger' POIs have a higher search rank. The poitypeid is used to filter POI's by type, e.g. restaurants, airports, etc.
 
     Field          Data type         Nullable
     -------------- ----------------- --------
@@ -78,6 +173,8 @@ This file contains the same keys (CountryCode, MapName, etc) as the metadata.pro
     poitypeid       smallint         not null
 
 #### Roadname Lookup (roadnamelookup.txt.bz2)
+This is a 
+
     Field          Data type   Nullable
     -------------- ----------- --------
     logicalroadid  int         not null
@@ -197,5 +294,6 @@ The Attached Section file record structure contains the following fields:
 #### Area Name (areaname.bin.gz)
 #### Road Name (roadname.bin.gz)
 #### Prohibited Turn (prohibited_turn.bin.gz)
+
 #### Point Of Interest (POI.bin.gz)
 
