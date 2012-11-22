@@ -19,14 +19,14 @@ class OsmParser() {
       a("id").toLong, 
       a("lat").toDouble, 
       a("lon").toDouble, 
-      (n \\ "tag").map(parseTag(_)).filterNot(ignoreNodeTag)
+      (n \\ "tag").map(parseTag(_)).filterNot(ignoreNodeTag) toList
     )
 
   def parseWay(n: xml.Node, a: Attrs) = 
     new OsmWay(
       a("id").toLong,
-      (n \\ "nd").map(_.attribute("ref").get.text.toLong),
-      (n \\ "tag").map(parseTag(_)).filterNot(ignoreWayTag)
+      (n \\ "nd").map(_.attribute("ref").get.text.toLong) toList,
+      (n \\ "tag").map(parseTag(_)).filterNot(ignoreWayTag) toList
     )
 
   def parseRelation(n: xml.Node, a: Attrs) = new OsmRelation(
@@ -34,8 +34,8 @@ class OsmParser() {
          (n \\ "member").map(m => new OsmRelationMember(
              m.attribute("type").get.text,
              m.attribute("ref").get.text.toLong,
-             m.attribute("role").get.text)),
-         (n \\ "tag").map(parseTag(_))
+             m.attribute("role").get.text)) toList,
+         (n \\ "tag").map(parseTag(_)) toList
         )
   
   def parseBounds (n: xml.Node, a: Attrs) = a.filterKeys(_ match {
