@@ -24,7 +24,7 @@ object Main {
       val osmData = new OsmParser().parse(osmStream)
       val nlmData = new NlmBuilder().buildFrom(osmData)
 
-      new NlmWriter().exportTo(nlmDir)
+      new NlmWriter(nlmData, nlmDir).write()
     }
   }
 }

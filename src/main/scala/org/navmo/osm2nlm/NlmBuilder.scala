@@ -58,7 +58,14 @@ class NlmBuilder {
        new NlmSection(sectionId, fromJunctionId, toJunctionId, shapepoints)
     }}
 
-    new NlmData(junctions, sections)
+    val junctionSectionPairs = for {
+      s <- sections
+      j <- List(s.from, s.to)
+    } yield (j, s)
+
+    val attachedSections = null
+
+    new NlmData(junctions, sections, attachedSections)
   }
 
   def splitWay(way: OsmWay, nodeMap: Map[Long, OsmNode], nodeIdsToJunctionIds: Map[Long, Int]): 

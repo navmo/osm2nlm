@@ -2,7 +2,10 @@ apply plugin: 'scala'
 apply plugin: 'eclipse'
 
 repositories {
-    mavenCentral()
+  maven { 
+    url "http://download.osgeo.org/webdav/geotools/"
+  }
+  mavenCentral()
 }
 
 dependencies {
@@ -12,6 +15,8 @@ dependencies {
 
     // Libraries needed for scala api
     compile 'org.scala-lang:scala-library:2.9.2'
+    compile 'org.apache.commons:commons-compress:1.4.1'
+    compile 'org.geotools:gt-epsg-wkt:8.4'
 
     testCompile 'org.scalatest:scalatest_2.9.2:2.0.M4'
     testCompile 'junit:junit:4.10'

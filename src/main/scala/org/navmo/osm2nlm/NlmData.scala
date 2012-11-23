@@ -1,20 +1,6 @@
 package org.navmo.osm2nlm
 
-import java.io.File
-
-class NlmData(val junctions: Seq[NlmJunction], val sections: Seq[NlmSection]) {
-
-}
-
-class NlmWriter() {
-  def cleanDir(dir: String) {
-    val f = new File(dir)
-    if (!f.exists()) f.mkdirs()
-  }
-
-  def exportTo(nlmDir: String) {
-    cleanDir(nlmDir)
-  }
+class NlmData(val junctions: Seq[NlmJunction], val sections: Seq[NlmSection], val attachedSections: Map[Int, List[Int]]) {
 }
 
 class NlmMetadata() {
