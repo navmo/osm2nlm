@@ -18,8 +18,17 @@ class NlmBuilder {
   def firstNodeIdOfWay(w: OsmWay) = w.nodeIds.head
   def lastNodeIdOfWay(w: OsmWay) = w.nodeIds.last
 
-  // convert to Navmo Local Map
+  // convert to Navmo Local Map, with no coordinate transform.
   def buildFrom(osmData: OsmData): NlmData = {
+    buildFrom(osmData, new IdentityTransform)
+  }
+
+  // convert to Navmo Local Map using a specified coordinate system
+  def buildFrom(osmData: OsmData, coordinateSystemId: Long): NlmData = {
+    buildFrom(osmData, new GeotoolsTransform(coordinateSystemId))
+  }
+
+  def buildFrom(osmData: OsmData, t: CoordinateTransform): NlmData = {
 
     // Build the  NLM junctions/shapepoints.
     // The rule is that any OSM node at the start or end of a way, or that is part 
@@ -40,10 +49,11 @@ class NlmBuilder {
 
     val nodeMap = osmData.nodes.map(n => (n.id, n)).toMap
 
-    // TODO: coordinate transform
-    val junctions = nodeIdsToJunctionIds.map {case (nodeId, junctionId) => 
-      new NlmJunction(junctionId, nodeMap(nodeId).lon.toFloat, nodeMap(nodeId).lat.toFloat)
-    }.toList
+    val junctions = nodeIdsToJunctionIds.map {case (nodeId, junctionId) => {
+      val node = nodeMap(nodeId)
+      val (x, y) = t.transform(node.lon, node.lat)
+      new NlmJunction(junctionId, x, y)
+    }}.toList
 
     // Each OSM Way is split into one or more NLM Sections. The splits happen at Junctions.
     val sectionDataList = for {
@@ -54,7 +64,10 @@ class NlmBuilder {
     val sections = sectionDataList.zipWithIndex.map {case ((fromNodeId, toNodeId, shapepointNodeIds), sectionId) => {
        val fromJunctionId = nodeIdsToJunctionIds(fromNodeId)
        val toJunctionId = nodeIdsToJunctionIds(toNodeId)
-       val shapepoints = shapepointNodeIds.map(id => {val n = nodeMap(id); (n.lon.toFloat, n.lat.toFloat)}).toList
+       val shapepoints = shapepointNodeIds.map(id => {
+         val n = nodeMap(id); 
+         t.transform(n.lon, n.lat)
+       }).toList
        new NlmSection(sectionId, fromJunctionId, toJunctionId, shapepoints)
     }}
 
