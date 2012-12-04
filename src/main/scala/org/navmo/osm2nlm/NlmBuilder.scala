@@ -7,6 +7,11 @@ class NlmBuilder {
   // Convert a Map of [K] => Seq[V] into Iterable[(K, V)]
   def pairs[K, V](m: Map[K, Seq[V]]) = for (k <- m.keys; v <- m(k)) yield (k, v)
 
+  // Convert an Iterable[(K, V)] into Map[K -> List[V]]
+  def pairs2Map[K, V](pairs: Iterable[(K, V)]) = pairs
+    .groupBy{case(k, v) => k}
+    .mapValues(p => p.map{case(k, v) => v}.toList)
+
   // Convert a Map of [K] => Seq[V] into a Map of V => Set[K]
   def pivot[K, V](m: Map[K, Seq[V]]) = pairs(m)  // yields Iterable[(K, V)]
     .groupBy(_._2)                               // yields Map of [V] => Iterable[(K, V)]
@@ -49,12 +54,6 @@ class NlmBuilder {
 
     val nodeMap = osmData.nodes.map(n => (n.id, n)).toMap
 
-    val junctions = nodeIdsToJunctionIds.map {case (nodeId, junctionId) => {
-      val node = nodeMap(nodeId)
-      val (x, y) = t.transform(node.lon, node.lat)
-      new NlmJunction(junctionId, x, y)
-    }}.toList
-
     // Each OSM Way is split into one or more NLM Sections. The splits happen at Junctions.
     val sectionDataList = for {
       way <- osmData.ways
@@ -74,26 +73,34 @@ class NlmBuilder {
     val junctionSectionPairs = for {
       s <- sections
       j <- List(s.from, s.to)
-    } yield (j, s)
+    } yield (j, s.id)
 
-    val attachedSections = null
+    val attachedSections = pairs2Map(junctionSectionPairs)
 
-    new NlmData(junctions, sections, attachedSections)
+    val junctions = nodeIdsToJunctionIds.map {case (nodeId, junctionId) => {
+      val node = nodeMap(nodeId)
+      val (x, y) = t.transform(node.lon, node.lat)
+      new NlmJunction(junctionId, x, y, attachedSections(junctionId))
+    }}.toList
+
+    val places = null//osmData.nodes.filter(n => n.tags.contains(elem))
+
+    val metadata = new NlmMetadata("", "", "", "", "", "")
+
+    new NlmData(metadata, junctions, sections, attachedSections)
   }
 
   def splitWay(way: OsmWay, nodeMap: Map[Long, OsmNode], nodeIdsToJunctionIds: Map[Long, Int]): 
           List[(Long, Long, List[Long])] = {
     val segments = wayToSegments(way)
     val partitionedSegments = segmentsToSections(segments, nodeIdsToJunctionIds)
-   
-    partitionedSegments.map { segments =>
-      {
-        val fromNodeId = segments.head._1
-        val toNodeId = segments.last._2
-        val shapepointNodeIds = segments.tail.map{case(from, to) => from}
-        (fromNodeId, toNodeId, shapepointNodeIds)
-      }
-    }
+
+    partitionedSegments.map(segments => {
+      val fromNodeId = segments.head._1
+      val toNodeId = segments.last._2
+      val shapepointNodeIds = segments.tail.map{case(from, to) => from}
+      (fromNodeId, toNodeId, shapepointNodeIds)
+    })
   }
 
   // return a list of (from, to) pairs corresponding to the segments in a way
@@ -103,18 +110,18 @@ class NlmBuilder {
     case head :: tail => way.nodeIds zip tail
   }
 
+  // takes a list of (from, to) node Id pairs. Returns a List of sections, 
+  // where each section is a List of (from, to) node Id pairs.
   def segmentsToSections(nodePairs: List[(Long, Long)], nodeIdsToJunctionIds: Map[Long, Int]) = {
-    def newPartition(pair: (Long, Long)): Boolean = {
-      nodeIdsToJunctionIds.contains(pair._1)
-    }
-    partition(nodePairs, newPartition)
+    def isNewPartition(pair: (Long, Long)): Boolean = nodeIdsToJunctionIds.contains(pair._1)
+    partition(nodePairs, isNewPartition)
   }
 
-  def partition[T](s: List[T], newPartition: T => Boolean): List[List[T]] = {
+  def partition[T](s: List[T], isNewPartition: T => Boolean): List[List[T]] = {
     @tailrec
     def loop(remaining: List[T], currentPartition: List[T], previousPartitions: List[List[T]]): List[List[T]] = remaining match {
       case Nil => currentPartition.reverse :: previousPartitions
-      case item :: rest if currentPartition.isEmpty || !newPartition(item) => loop(rest, item :: currentPartition, previousPartitions)
+      case item :: rest if currentPartition.isEmpty || !isNewPartition(item) => loop(rest, item :: currentPartition, previousPartitions)
       case item :: rest => loop(rest, List(item), currentPartition.reverse :: previousPartitions)
     }
     loop(s, List(), List()).reverse
