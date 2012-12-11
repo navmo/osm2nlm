@@ -1,6 +1,11 @@
 package org.navmo.osm2nlm
 
-class NlmData(val metadata: NlmMetadata, val junctions: Seq[NlmJunction], val sections: Seq[NlmSection], val attachedSections: Map[Int, List[Int]]) {
+class NlmData(
+    val metadata: NlmMetadata, 
+    val junctions: Seq[NlmJunction], 
+    val sections: Seq[NlmSection], 
+    val attachedSections: Map[Int, List[Int]],
+    val places: Seq[NlmPlace]) {
 }
 
 class NlmMetadata(val countryCode: String, val mapName: String, val coordinateMapping: String, val coordinateSystemId: String, val buildVersion: String, val dataVersion: String) {

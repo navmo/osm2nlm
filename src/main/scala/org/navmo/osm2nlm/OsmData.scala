@@ -4,7 +4,7 @@ class OsmData(val metadata: OsmMetadata, val nodes: List[OsmNode], val ways: Lis
 
 class OsmMetadata(val minLat: BigDecimal, val minLon: BigDecimal, val maxLat: BigDecimal, val maxLon: BigDecimal)
 
-class OsmTag(val key: String, val value: String) {
+case class OsmTag(key: String, value: String) {
   override def toString = key + "=" + value
 }
 

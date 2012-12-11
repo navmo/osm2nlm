@@ -50,7 +50,19 @@ class NlmWriter(nlmData: NlmData, outputDir: String) {
     }
 
     def writePlaces(s: DataOutputStream) {
-
+      val size = nlmData.places.size
+      s.writeInt(1)        // file format version
+      s.writeInt(0)        // min Id
+      s.writeInt(size - 1) // max Id
+      s.writeInt(size)     // number of records
+ 
+      nlmData.places.foreach { p =>
+        s.writeInt(p.id)
+        s.writeUTF(p.name)
+        s.writeByte(p.size)
+        s.writeFloat(p.x)
+        s.writeFloat(p.y)
+      }
     }
 
     def writeJunctions(s: DataOutputStream) {

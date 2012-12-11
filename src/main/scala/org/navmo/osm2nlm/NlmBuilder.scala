@@ -83,11 +83,33 @@ class NlmBuilder {
       new NlmJunction(junctionId, x, y, attachedSections(junctionId))
     }}.toList
 
-    val places = null//osmData.nodes.filter(n => n.tags.contains(elem))
+    val places = getPlaces(osmData, t)
 
     val metadata = new NlmMetadata("", "", "", "", "", "")
 
-    new NlmData(metadata, junctions, sections, attachedSections)
+    new NlmData(metadata, junctions, sections, attachedSections, places)
+  }
+
+  def getPlaces(osmData: OsmData, t: CoordinateTransform): Seq[NlmPlace] = {
+    def isPlaceNode(n: OsmNode) = 
+      n.tags.exists(t => t.key == "place")
+
+    // return (name, size, x, y)
+    def placeData(n: OsmNode) = {
+      val size: Byte = n.tags.find(t => t.key == "place") match {
+        case Some(OsmTag(k, "suburb")) => 3
+        case _ => 6
+      }
+      val name = n.tags.find(t => t.key == "name") match {
+        case Some(OsmTag(k, name)) => name
+        case _ => "[Unnamed place]"
+      }
+      val (x, y) = t.transform(n.lon, n.lat)
+      (name, size, x, y)
+    }
+    osmData.nodes.filter(isPlaceNode).map(placeData).zipWithIndex.map{
+      case((name, size, x, y), id) => new NlmPlace(id, name, size, x, y)
+    }
   }
 
   def splitWay(way: OsmWay, nodeMap: Map[Long, OsmNode], nodeIdsToJunctionIds: Map[Long, Int]): 
