@@ -117,7 +117,7 @@ Standard java properties file. Contains the following keys (obviously the values
     BuildVersion=123              # ${build.version}
     DataVersion=234               # ${perforce.build.number}
 
-### Navmo Local Map Online Search Files
+## Navmo Local Map Online Search Files
 The following are bzip2-compressed text files containing map data suitable for searching for start and endpoints of routes. The text format is tab-separated-values, and the character set is CP-1252. Because these are imported directly into a Postgres database, the datatypes of the fields are specified as PostgreSQL data types.
 
 The following files are required for online search:
@@ -181,8 +181,20 @@ This is a
     roadname       text        not null
     postalareas    text        not null
 
-### Navmo Local Map rendering/routing data
+## Navmo Local Map rendering/routing data files
 The following are gzip-compressed binary files containing map data suitable for rendering and routing (note that spatial indexes are generated on the server at the point when the files are read in). The actual physical file is written with a DataOutputStream, using the writeInt(), writeFloat() methods, etc. Strings are written using writeUTF().
+
+    1. metadata.bin.gz
+    2. place.bin.gz
+    3. junction.bin.gz
+    4. attached_section.bin.gz
+    5. section.bin.gz
+    6. shapepoint.bin.gz
+    7. areaname.bin.gz
+    8. roadname.bin.gz
+    9. prohibited_turn.bin.gz
+
+#### Point Of Interest (POI.bin.gz)
 
 #### Metadata File (metadata.bin.gz)
 The Metadata file contains the following sections:
@@ -262,8 +274,13 @@ Each record in the Junction file contains the following fields:
     Junction ID                   int
     X coordinate                  float
     Y coordinate                  float
-    Attributes                    short (bitfield)
+    Attributes                    short (bitfield) 
     Number of attached sections   byte
+
+Valid attributes are:
+
+    0x01. Has prohibited turns
+    0x02. Has required turns
 
 #### Attached Section file (attached_section.bin.gz)
 The Attached Section file has the following structure: 
@@ -290,10 +307,179 @@ The Attached Section file record structure contains the following fields:
     Section ID                    int              ID of attached section. Foreign key into Sections file
 
 #### Section (section.bin.gz)
+The Section file has the following structure:
+
+    header
+    record 1
+    record 2
+    ...
+    record n
+
+The header contains the following fields:
+
+    Name                          Java data type   Notes
+    ----------------------------- --------------
+    File format version           int              Must be '3'
+    Minimum section ID            int
+    Maximum section ID            int
+    Number of records             int
+    Maximum road size             byte
+    Fields available              int
+    
+Each record contains the following fields:
+    
+    Name                          Java data type   Notes
+    ----------------------------- --------------
+    Section ID                    int
+    From junction ID              int              foreign key to Junction file
+    To junction ID                int              foreign key to Junction file
+    Modes of transport            byte             } Bitfields specifying the modes of transport
+    Reverse modes of transport    byte             } that can traverse this section.
+    Attributes                    short            see below for valid attributes
+    Road ID                       int
+    Road name ID                  int              foreign key to Road Name file
+    Route name                    string
+    Road size                     byte
+    Number of shapepoints         short
+    Postal Area (left)            string
+    Postal Area (right)           string
+    Area ID (level 1)             int              foreign key to Area Name file
+    Area ID (level 2)             int
+    Area ID (level 3)             int
+    
+Valid attributes are:
+    0x01  Roundabout
+    0x02  Parking area
+    0x04  Slip road
+    0x08  Walkway/pedestrian
+    
 #### Shapepoint (shapepoint.bin.gz)
+
+Header fields:
+    
+    Name                          Java data type   Notes
+    ----------------------------- --------------
+    File format version           int              Must be '1'
+    Number of records             int
+    
+Record fields
+    
+    Name                          Java data type   Notes
+    ----------------------------- --------------
+    Section ID                    int              foreign key to Section file
+    Sequence ID                   short
+    X                             float
+    Y                             float
+
 #### Area Name (areaname.bin.gz)
+
+Header fields:
+    
+    Name                          Java data type   Notes
+    ----------------------------- --------------
+    File format version           int              Must be '1'
+    Minimum area name ID          int
+    Maximum area name ID          int
+    Number of records             int
+
+Record fields
+    
+    Name                          Java data type   Notes
+    ----------------------------- --------------
+    Area name ID                  int
+    Area name                     string
+
 #### Road Name (roadname.bin.gz)
+
+Header fields:
+    
+    Name                          Java data type   Notes
+    ----------------------------- --------------
+    File format version           int              Must be '1'
+    Minimum road name ID          int
+    Maximum road name ID          int
+    Number of records             int
+
+Record fields
+    
+    Name                          Java data type   Notes
+    ----------------------------- --------------
+    Road name ID                  int
+    Road name                     string
+    
 #### Prohibited Turn (prohibited_turn.bin.gz)
+
+This is not required for pedestrian navigation.
 
 #### Point Of Interest (POI.bin.gz)
 
+Header fields:
+    
+    Name                          Java data type   Notes
+    ----------------------------- --------------
+    File format version           int              Must be '1'
+    Minimum POI ID                int
+    Maximum POI ID                int
+    Number of records             int
+
+Record fields
+    
+    Name                          Java data type   Notes
+    ----------------------------- --------------
+    POI ID                        int
+    Short name                    string
+    Long name                     string           See below for valid types
+    Type                          short
+    X                             float
+    y                             float
+
+The POI types currently recognized by Navmo are:
+
+    0.  Tube/metro station
+    1.  Museum
+    2.  ATM
+    3.  Filling station
+    4.  Restaurant
+    5.  Nightlife
+    6.  Hotel
+    7.  Cinema
+    8.  Theatre
+    9.  Mainline station
+    10. Tourist attraction
+    11. Place of worship
+    12. Post office
+    13. Car rental
+    14. Tourist information
+    15. Pub
+    16. City centre
+    17. Metro
+    18. Parking
+    19. Airport
+    20. Car repair
+    21. Hospital
+    22. Shop
+    23. Pharmacy
+    24. Police station
+    25. Doctor
+    26. Dentist
+    27. Amusement park
+    28. College or university
+    29. Company
+    30. Concert hall
+    31. Golf course
+    32. Ice skating
+    33. Library
+    34. Music centre
+    35. Opera
+    36. Stadium
+    37. Swimming pool
+    38. Tennis court
+    39. Vet
+    40. Zoo
+    41. Water sports
+    42. Large city centre
+    43. Route start
+    44. Route end
+    45. Route waypoint
+    46. Search result
+    48. Map centre
