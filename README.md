@@ -348,6 +348,7 @@ Each record contains the following fields:
     Area ID (level 3)             int
 
 Valid modes of transport are:
+
     0x01. Resident
     0x02. Car
     0x04. Bus
@@ -358,6 +359,7 @@ Valid modes of transport are:
     0x80. Pedestrian
     
 Valid attributes are:
+
     0x01. Roundabout
     0x02. Parking area
     0x04. Slip road
