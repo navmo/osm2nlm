@@ -334,7 +334,7 @@ Each record contains the following fields:
     From junction ID              int              foreign key to Junction file
     To junction ID                int              foreign key to Junction file
     Modes of transport            byte             } Bitfields specifying the modes of transport
-    Reverse modes of transport    byte             } that can traverse this section.
+    Reverse modes of transport    byte             } that can traverse this section. See below.
     Attributes                    short            see below for valid attributes
     Road ID                       int
     Road name ID                  int              foreign key to Road Name file
@@ -346,12 +346,22 @@ Each record contains the following fields:
     Area ID (level 1)             int              foreign key to Area Name file
     Area ID (level 2)             int
     Area ID (level 3)             int
+
+Valid modes of transport are:
+    0x01. Resident
+    0x02. Car
+    0x04. Bus
+    0x08. Taxi
+    0x10. Delivery vehicle
+    0x20. Motorcyle
+    0x40. Cycle
+    0x80. Pedestrian
     
 Valid attributes are:
-    0x01  Roundabout
-    0x02  Parking area
-    0x04  Slip road
-    0x08  Walkway/pedestrian
+    0x01. Roundabout
+    0x02. Parking area
+    0x04. Slip road
+    0x08. Walkway/pedestrian
     
 #### Shapepoint (shapepoint.bin.gz)
 
